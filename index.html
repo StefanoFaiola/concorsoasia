@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concorso – Banca Dati Quesiti</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --border: #e0ded8;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --accent: #3b6d11;
+    --accent-bg: #eaf3de;
+    --accent-text: #27500a;
+    --a-color: #185fa5;
+    --b-color: #853d0b;
+    --c-color: #6b3489;
+    --d-color: #993556;
+    --saved: #1d9e75;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --surface: #252523;
+      --border: #3a3a37;
+      --text: #e8e6df;
+      --muted: #9a9890;
+      --accent: #97c459;
+      --accent-bg: #27500a;
+      --accent-text: #c0dd97;
+      --a-color: #85b7eb;
+      --b-color: #f0997b;
+      --c-color: #AFA9EC;
+      --d-color: #ED93B1;
+      --saved: #5dcaa5;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+  #loader {
+    margin-top: 80px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  #loader .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #app { display: none; width: 100%; flex-direction: column; align-items: center; }
+  header {
+    width: 100%;
+    max-width: 780px;
+    margin-bottom: 24px;
+  }
+  header h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  header p { font-size: 13px; color: var(--muted); }
+  .progress-bar {
+    width: 100%; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+  .toolbar {
+    width: 100%; max-width: 780px;
+    display: flex; align-items: center;
+    gap: 10px; margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .toolbar input[type=number] {
+    width: 90px; padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px;
+    background: var(--surface); color: var(--text);
+  }
+  .toolbar input[type=text] {
+    flex: 1; min-width: 160px;
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px;
+    background: var(--surface); color: var(--text);
+  }
+  .toolbar input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .filter-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px; font-size: 13px;
+    background: var(--surface); color: var(--text);
+    cursor: pointer; white-space: nowrap;
+  }
+  .filter-btn.active {
+    background: var(--accent-bg);
+    color: var(--accent-text);
+    border-color: var(--accent);
+  }
+  .card {
+    width: 100%; max-width: 780px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px; margin-bottom: 16px;
+  }
+  .q-meta {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 16px;
+  }
+  .q-num {
+    font-size: 13px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .saved-badge {
+    font-size: 12px; padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--accent-bg);
+    color: var(--accent-text);
+    display: none;
+  }
+  .saved-badge.visible { display: inline; }
+  .question { font-size: 16px; line-height: 1.7; margin-bottom: 24px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    display: flex; align-items: flex-start;
+    gap: 12px; padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    font-size: 15px; line-height: 1.5;
+    background: transparent; color: var(--text);
+    text-align: left; width: 100%;
+  }
+  .option:hover { background: var(--bg); }
+  .option .label {
+    font-weight: 600; font-size: 14px;
+    min-width: 20px; padding-top: 1px;
+  }
+  .option[data-opt="A"] .label { color: var(--a-color); }
+  .option[data-opt="B"] .label { color: var(--b-color); }
+  .option[data-opt="C"] .label { color: var(--c-color); }
+  .option[data-opt="D"] .label { color: var(--d-color); }
+  .option.selected[data-opt="A"] { border-color: var(--a-color); background: color-mix(in srgb, var(--a-color) 8%, transparent); }
+  .option.selected[data-opt="B"] { border-color: var(--b-color); background: color-mix(in srgb, var(--b-color) 8%, transparent); }
+  .option.selected[data-opt="C"] { border-color: var(--c-color); background: color-mix(in srgb, var(--c-color) 8%, transparent); }
+  .option.selected[data-opt="D"] { border-color: var(--d-color); background: color-mix(in srgb, var(--d-color) 8%, transparent); }
+  .nav {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    width: 100%; max-width: 780px; gap: 12px;
+  }
+  .nav-btn {
+    padding: 9px 22px;
+    border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px;
+    background: var(--surface); color: var(--text);
+    cursor: pointer; font-weight: 500;
+    transition: background 0.1s;
+  }
+  .nav-btn:hover { background: var(--bg); }
+  .nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .nav-center { font-size: 13px; color: var(--muted); text-align: center; flex: 1; }
+  .action-bar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    justify-content: center; margin-top: 24px;
+  }
+  .export-btn {
+    padding: 10px 24px;
+    background: var(--accent-bg);
+    color: var(--accent-text);
+    border: 1px solid var(--accent);
+    border-radius: 8px; font-size: 14px;
+    font-weight: 500; cursor: pointer;
+  }
+  .export-btn:hover { filter: brightness(0.95); }
+  .import-btn {
+    padding: 10px 24px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px;
+    font-weight: 500; cursor: pointer;
+  }
+  .import-btn:hover { background: var(--bg); }
+  .stats { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="spinner"></div>
+  Caricamento domande...
+</div>
+
+<div id="app">
+  <header>
+    <h1>Presidenza della Repubblica — Banca Dati Quesiti</h1>
+    <p>Concorso pubblico per esami — Coadiutore Amministrativo</p>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Cerca domanda..." oninput="filterSearch()">
+    <input type="number" id="jumpInput" placeholder="N°" min="1" onchange="jumpTo()" title="Vai al numero">
+    <button class="filter-btn" id="filterAll" onclick="setFilter('all')">Tutte</button>
+    <button class="filter-btn" id="filterAnswered" onclick="setFilter('answered')">Risposte</button>
+    <button class="filter-btn" id="filterUnanswered" onclick="setFilter('unanswered')">Da rispondere</button>
+  </div>
+
+  <div class="card" id="qcard">
+    <div class="q-meta">
+      <span class="q-num" id="qnum">Domanda —</span>
+      <span class="saved-badge" id="savedBadge">✓ Salvata</span>
+    </div>
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">← Precedente</button>
+    <div class="nav-center" id="navCenter"></div>
+    <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Successiva →</button>
+  </div>
+
+  <div class="action-bar">
+    <button class="export-btn" onclick="exportJSON()">⬇ Esporta JSON</button>
+    <button class="export-btn" onclick="exportCSV()">⬇ Esporta CSV</button>
+    <button class="import-btn" onclick="document.getElementById('importInput').click()">⬆ Importa risposte</button>
+    <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+  <div class="stats" id="stats"></div>
+</div>
+
+<script>
+const STORAGE_KEY = 'concorso_answers';
+let ALL_DATA = {};
+let answers = {};
+let allKeys = [];
+let filteredKeys = [];
+let currentIndex = 0;
+let filterMode = 'all';
+let searchQuery = '';
+
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) answers = JSON.parse(saved);
+} catch(e) {}
+
+fetch('data.json')
+  .then(r => r.json())
+  .then(data => {
+    ALL_DATA = data;
+    allKeys = Object.keys(data);
+    filteredKeys = [...allKeys];
+    document.getElementById('loader').style.display = 'none';
+    const app = document.getElementById('app');
+    app.style.display = 'flex';
+    setFilter('all');
+  })
+  .catch(() => {
+    document.getElementById('loader').innerHTML = '<p style="color:red">Errore nel caricamento di data.json</p>';
+  });
+
+function saveAnswers() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(answers)); } catch(e) {}
+}
+
+function setFilter(mode) {
+  filterMode = mode;
+  document.getElementById('filterAll').classList.toggle('active', mode === 'all');
+  document.getElementById('filterAnswered').classList.toggle('active', mode === 'answered');
+  document.getElementById('filterUnanswered').classList.toggle('active', mode === 'unanswered');
+  applyFilter();
+}
+
+function filterSearch() {
+  searchQuery = document.getElementById('search').value.toLowerCase();
+  applyFilter();
+}
+
+function applyFilter() {
+  filteredKeys = allKeys.filter(k => {
+    const q = ALL_DATA[k];
+    const matchMode = filterMode === 'all' ? true
+      : filterMode === 'answered' ? !!answers[k]
+      : !answers[k];
+    const matchSearch = !searchQuery ||
+      q.Q.toLowerCase().includes(searchQuery) ||
+      q.A.toLowerCase().includes(searchQuery) ||
+      q.B.toLowerCase().includes(searchQuery) ||
+      q.C.toLowerCase().includes(searchQuery) ||
+      q.D.toLowerCase().includes(searchQuery);
+    return matchMode && matchSearch;
+  });
+  currentIndex = 0;
+  render();
+}
+
+function render() {
+  if (filteredKeys.length === 0) {
+    document.getElementById('qnum').textContent = 'Nessuna domanda trovata';
+    document.getElementById('question').textContent = '';
+    document.getElementById('options').innerHTML = '';
+    document.getElementById('navCenter').textContent = '0 / 0';
+    document.getElementById('savedBadge').classList.remove('visible');
+    document.getElementById('prevBtn').disabled = true;
+    document.getElementById('nextBtn').disabled = true;
+    document.getElementById('progress').style.width = '0%';
+    updateStats();
+    return;
+  }
+  const key = filteredKeys[currentIndex];
+  const q = ALL_DATA[key];
+  const ca = answers[key] || '';
+
+  document.getElementById('qnum').textContent = `Domanda ${key}`;
+  document.getElementById('question').textContent = q.Q;
+  document.getElementById('savedBadge').classList.toggle('visible', !!ca);
+
+  const opts = document.getElementById('options');
+  opts.innerHTML = '';
+  ['A','B','C','D'].forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option' + (ca === opt ? ' selected' : '');
+    btn.dataset.opt = opt;
+    btn.onclick = () => selectAnswer(key, opt);
+    btn.innerHTML = `<span class="label">${opt}</span><span>${q[opt]}</span>`;
+    opts.appendChild(btn);
+  });
+
+  document.getElementById('navCenter').textContent = `${currentIndex + 1} / ${filteredKeys.length}`;
+  document.getElementById('prevBtn').disabled = currentIndex === 0;
+  document.getElementById('nextBtn').disabled = currentIndex === filteredKeys.length - 1;
+
+  const answered = allKeys.filter(k => answers[k]).length;
+  document.getElementById('progress').style.width = `${(answered / allKeys.length * 100).toFixed(1)}%`;
+  updateStats();
+}
+
+function selectAnswer(key, opt) {
+  if (answers[key] === opt) { delete answers[key]; }
+  else { answers[key] = opt; }
+  saveAnswers();
+  render();
+}
+
+function navigate(dir) {
+  currentIndex = Math.max(0, Math.min(filteredKeys.length - 1, currentIndex + dir));
+  render();
+}
+
+function jumpTo() {
+  const val = document.getElementById('jumpInput').value;
+  const idx = filteredKeys.indexOf(val);
+  if (idx !== -1) { currentIndex = idx; render(); }
+  else {
+    const numIdx = filteredKeys.findIndex(k => parseInt(k) >= parseInt(val));
+    if (numIdx !== -1) { currentIndex = numIdx; render(); }
+  }
+}
+
+function updateStats() {
+  const answered = allKeys.filter(k => answers[k]).length;
+  document.getElementById('stats').textContent =
+    `${answered} / ${allKeys.length} risposte salvate (${(answered/allKeys.length*100).toFixed(1)}%)`;
+}
+
+function exportJSON() {
+  const out = {};
+  allKeys.forEach(k => { out[k] = { ...ALL_DATA[k], CA: answers[k] || '' }; });
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'concorso_risposte.json';
+  a.click();
+}
+
+function exportCSV() {
+  const rows = [['Numero','Domanda','A','B','C','D','CA']];
+  allKeys.forEach(k => {
+    const q = ALL_DATA[k];
+    const escape = s => '"' + (s||'').replace(/"/g, '""') + '"';
+    rows.push([k, escape(q.Q), escape(q.A), escape(q.B), escape(q.C), escape(q.D), answers[k]||'']);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob(["\uFEFF" + csv], {type: 'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'concorso_risposte.csv';
+  a.click();
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      let count = 0;
+      Object.keys(imported).forEach(k => {
+        const ca = imported[k].CA;
+        if (ca && ['A','B','C','D'].includes(ca)) { answers[k] = ca; count++; }
+      });
+      saveAnswers();
+      render();
+      alert(`✓ Importate ${count} risposte salvate correttamente.`);
+    } catch(err) {
+      alert('Errore: file JSON non valido.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft') navigate(-1);
+  if (e.key === 'ArrowRight') navigate(1);
+  if (e.key === 'a' || e.key === 'A') { const k=filteredKeys[currentIndex]; if(k) selectAnswer(k,'A'); }
+  if (e.key === 'b' || e.key === 'B') { const k=filteredKeys[currentIndex]; if(k) selectAnswer(k,'B'); }
+  if (e.key === 'c' || e.key === 'C') { const k=filteredKeys[currentIndex]; if(k) selectAnswer(k,'C'); }
+  if (e.key === 'd' || e.key === 'D') { const k=filteredKeys[currentIndex]; if(k) selectAnswer(k,'D'); }
+});
+</script>
+</body>
+</html>
