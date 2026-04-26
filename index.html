@@ -150,6 +150,12 @@
 
   <a href="study.html" class="study-link">📖 Vai alla Modalità Studio con risposte corrette →</a>
 
+  <div class="nav">
+    <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">← Indietro</button>
+    <div class="nav-center" id="navCenter"></div>
+    <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Avanti →</button>
+  </div>
+
   <div class="card">
     <div class="q-meta">
       <span class="q-num" id="qnum">Domanda —</span>
@@ -157,12 +163,6 @@
     </div>
     <div class="question" id="question"></div>
     <div class="options" id="options"></div>
-  </div>
-
-  <div class="nav">
-    <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">← Indietro</button>
-    <div class="nav-center" id="navCenter"></div>
-    <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Avanti →</button>
   </div>
 
   <div class="action-bar">

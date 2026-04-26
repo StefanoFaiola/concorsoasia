@@ -222,6 +222,12 @@
     <input type="number" id="jumpInput" placeholder="N°" min="1" onchange="jumpTo()" title="Vai al numero">
   </div>
 
+  <div class="nav">
+    <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">← Indietro</button>
+    <div class="nav-center" id="navCenter"></div>
+    <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Avanti →</button>
+  </div>
+
   <div class="card">
     <div class="q-meta">
       <span class="q-num" id="qnum">Domanda —</span>
@@ -233,12 +239,6 @@
     <div class="question" id="question"></div>
     <div class="options" id="options"></div>
     <div class="quiz-result" id="quizResult"></div>
-  </div>
-
-  <div class="nav">
-    <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">← Indietro</button>
-    <div class="nav-center" id="navCenter"></div>
-    <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Avanti →</button>
   </div>
 
   <div class="score-bar" id="scoreBar">
