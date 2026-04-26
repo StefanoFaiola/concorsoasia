@@ -272,7 +272,7 @@ let currentIndex = 0, mode = 'study', searchQuery = '';
 let quizAnswered = {}, scoreCorrect = 0, scoreWrong = 0;
 let editKey = null, editSelection = null;
 
-fetch('correct_answers.json')
+fetch('correct_answers.json?v=' + Date.now())
   .then(r => r.json())
   .then(data => {
     ALL_DATA = data; allKeys = Object.keys(data); filteredKeys = [...allKeys];
