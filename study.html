@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concorso – Modalità Studio</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f3; --surface: #ffffff; --border: #e0ded8;
+    --text: #1a1a18; --muted: #6b6b66; --accent: #3b6d11;
+    --accent-bg: #eaf3de; --accent-text: #27500a;
+    --correct: #1d9e75; --correct-bg: #d6f5ec; --correct-text: #0d6b4f;
+    --wrong: #c0392b; --wrong-bg: #fde8e6; --wrong-text: #922b21;
+    --a-color: #185fa5; --b-color: #853d0b; --c-color: #6b3489; --d-color: #993556;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --surface: #252523; --border: #3a3a37;
+      --text: #e8e6df; --muted: #9a9890; --accent: #97c459;
+      --accent-bg: #27500a; --accent-text: #c0dd97;
+      --correct: #5dcaa5; --correct-bg: #0d3d2d; --correct-text: #5dcaa5;
+      --wrong: #e57373; --wrong-bg: #3d1a1a; --wrong-text: #e57373;
+      --a-color: #85b7eb; --b-color: #f0997b; --c-color: #AFA9EC; --d-color: #ED93B1;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; padding: 16px 12px 48px;
+  }
+  #loader { margin-top: 80px; text-align: center; color: var(--muted); font-size: 15px; }
+  #loader .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #app { display: none; width: 100%; flex-direction: column; align-items: center; }
+  header { width: 100%; max-width: 780px; margin-bottom: 16px; }
+  header h1 { font-size: 17px; font-weight: 600; margin-bottom: 3px; }
+  header p { font-size: 13px; color: var(--muted); }
+  .progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+
+  .mode-bar {
+    width: 100%; max-width: 780px; display: flex;
+    gap: 6px; margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .mode-btn {
+    flex: 1; min-width: 100px; padding: 10px 8px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    background: var(--surface); color: var(--text);
+    cursor: pointer; text-align: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mode-btn.active { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent); }
+  .home-link {
+    flex: 1; min-width: 100px; padding: 10px 8px;
+    font-size: 13px; color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); text-align: center;
+  }
+
+  .top-bar {
+    width: 100%; max-width: 780px; display: flex;
+    gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .top-bar input[type=text] {
+    flex: 1; min-width: 120px; padding: 9px 12px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; background: var(--surface); color: var(--text);
+  }
+  .top-bar input[type=number] {
+    width: 80px; padding: 9px 10px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; background: var(--surface); color: var(--text);
+  }
+  .top-bar input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .card {
+    width: 100%; max-width: 780px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 12px;
+  }
+  .q-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+  .q-num { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+  .badge-warn { background: var(--wrong-bg); color: var(--wrong-text); }
+  .badge-edit {
+    background: var(--bg); color: var(--muted);
+    border: 1px solid var(--border); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .badge-edit:hover { background: var(--border); }
+
+  .question { font-size: 15px; line-height: 1.7; margin-bottom: 20px; }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+
+  .option {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 14px; line-height: 1.5;
+    background: transparent; color: var(--text);
+    text-align: left; width: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .option .label { font-weight: 600; font-size: 13px; min-width: 18px; padding-top: 1px; flex-shrink: 0; }
+  .option[data-opt="A"] .label { color: var(--a-color); }
+  .option[data-opt="B"] .label { color: var(--b-color); }
+  .option[data-opt="C"] .label { color: var(--c-color); }
+  .option[data-opt="D"] .label { color: var(--d-color); }
+  .option-text { flex: 1; }
+  .option-check { margin-left: auto; padding-left: 10px; font-weight: 700; flex-shrink: 0; }
+
+  /* Study mode */
+  .option.correct { border-color: var(--correct); background: var(--correct-bg); }
+  .option.correct .label { color: var(--correct-text); }
+  .option.correct .option-check { color: var(--correct); }
+
+  /* Quiz mode */
+  .option.quiz-btn { cursor: pointer; transition: background 0.15s; }
+  .option.quiz-btn:active:not(.revealed) { opacity: 0.8; }
+  .option.selected-correct { border-color: var(--correct); background: var(--correct-bg); }
+  .option.selected-correct .label { color: var(--correct-text); }
+  .option.selected-correct .option-check { color: var(--correct); }
+  .option.selected-wrong { border-color: var(--wrong); background: var(--wrong-bg); }
+  .option.selected-wrong .label { color: var(--wrong-text); }
+  .option.selected-wrong .option-check { color: var(--wrong); }
+  .option.show-correct { border-color: var(--correct); background: var(--correct-bg); }
+  .option.show-correct .label { color: var(--correct-text); }
+  .option.show-correct .option-check { color: var(--correct); }
+
+  .quiz-result {
+    margin-top: 12px; padding: 10px 14px;
+    border-radius: 8px; font-size: 14px; font-weight: 500; display: none;
+  }
+  .quiz-result.correct { background: var(--correct-bg); color: var(--correct-text); }
+  .quiz-result.wrong { background: var(--wrong-bg); color: var(--wrong-text); }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 780px; gap: 10px; }
+  .nav-btn {
+    flex: 1; padding: 12px 10px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; background: var(--surface);
+    color: var(--text); cursor: pointer; font-weight: 500;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .nav-center { font-size: 13px; color: var(--muted); text-align: center; white-space: nowrap; }
+
+  .score-bar {
+    width: 100%; max-width: 780px; display: none;
+    gap: 16px; margin-top: 12px; font-size: 13px;
+    color: var(--muted); justify-content: center; flex-wrap: wrap;
+  }
+  .score-bar span strong { color: var(--text); }
+
+  .action-bar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 16px; width: 100%; max-width: 780px; }
+  .action-btn {
+    flex: 1; min-width: 130px; padding: 11px 16px;
+    border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; text-align: center; border: 1px solid var(--accent);
+    background: var(--accent-bg); color: var(--accent-text);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Confirm modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 100;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 24px; max-width: 420px; width: 100%;
+    border: 1px solid var(--border);
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 10px; }
+  .modal p { font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+  .modal-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .modal-opt {
+    padding: 10px 14px; border: 1.5px solid var(--border);
+    border-radius: 8px; cursor: pointer; font-size: 14px;
+    background: transparent; color: var(--text); text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .modal-opt:hover, .modal-opt.selected { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-text); }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-btn {
+    flex: 1; padding: 10px; border-radius: 8px; font-size: 14px;
+    font-weight: 500; cursor: pointer;
+  }
+  .modal-btn.confirm { background: var(--accent-bg); color: var(--accent-text); border: 1px solid var(--accent); }
+  .modal-btn.cancel { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .modal-btn.confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="spinner"></div>Caricamento domande...</div>
+
+<div id="app">
+  <header>
+    <h1>Presidenza della Repubblica — Studio</h1>
+    <p>Concorso pubblico — Coadiutore Amministrativo</p>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="mode-bar">
+    <button class="mode-btn active" id="modeStudy" onclick="setMode('study')">📖 Studio</button>
+    <button class="mode-btn" id="modeQuiz" onclick="setMode('quiz')">🧠 Quiz</button>
+    <a href="index.html" class="home-link">← Risposta libera</a>
+  </div>
+
+  <div class="top-bar">
+    <input type="text" id="search" placeholder="Cerca domanda..." oninput="filterSearch()">
+    <input type="number" id="jumpInput" placeholder="N°" min="1" onchange="jumpTo()" title="Vai al numero">
+  </div>
+
+  <div class="card">
+    <div class="q-meta">
+      <span class="q-num" id="qnum">Domanda —</span>
+      <div class="badges">
+        <span class="badge badge-warn" id="noAnswerBadge" style="display:none">⚠ N/D</span>
+        <button class="badge badge-edit" id="editBtn" onclick="openEditModal()" style="display:none">✏️ Modifica risposta</button>
+      </div>
+    </div>
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+    <div class="quiz-result" id="quizResult"></div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">← Indietro</button>
+    <div class="nav-center" id="navCenter"></div>
+    <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Avanti →</button>
+  </div>
+
+  <div class="score-bar" id="scoreBar">
+    <span>✓ Corrette: <strong id="scoreCorrect">0</strong></span>
+    <span>✗ Errate: <strong id="scoreWrong">0</strong></span>
+    <span>Precisione: <strong id="scoreAcc">—</strong></span>
+  </div>
+
+  <div class="action-bar">
+    <button class="action-btn" onclick="exportJSON()">⬇ Esporta JSON aggiornato</button>
+  </div>
+</div>
+
+<!-- Edit Answer Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Modifica risposta corretta</h3>
+    <p id="modalQuestion"></p>
+    <div class="modal-opts" id="modalOpts"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal()">Annulla</button>
+      <button class="modal-btn confirm" id="modalConfirm" onclick="confirmEdit()" disabled>Conferma</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let ALL_DATA = {};
+let allKeys = [], filteredKeys = [];
+let currentIndex = 0, mode = 'study', searchQuery = '';
+let quizAnswered = {}, scoreCorrect = 0, scoreWrong = 0;
+let editKey = null, editSelection = null;
+
+fetch('correct_answers.json')
+  .then(r => r.json())
+  .then(data => {
+    ALL_DATA = data; allKeys = Object.keys(data); filteredKeys = [...allKeys];
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    render();
+  })
+  .catch(() => { document.getElementById('loader').innerHTML = '<p style="color:red">Errore nel caricamento di correct_answers.json</p>'; });
+
+function setMode(m) {
+  mode = m; quizAnswered = {}; scoreCorrect = 0; scoreWrong = 0;
+  document.getElementById('modeStudy').classList.toggle('active', m === 'study');
+  document.getElementById('modeQuiz').classList.toggle('active', m === 'quiz');
+  document.getElementById('scoreBar').style.display = m === 'quiz' ? 'flex' : 'none';
+  render();
+}
+
+function filterSearch() {
+  searchQuery = document.getElementById('search').value.toLowerCase();
+  filteredKeys = allKeys.filter(k => {
+    const q = ALL_DATA[k];
+    return !searchQuery || q.Q.toLowerCase().includes(searchQuery) ||
+      q.A.toLowerCase().includes(searchQuery) || q.B.toLowerCase().includes(searchQuery) ||
+      q.C.toLowerCase().includes(searchQuery) || q.D.toLowerCase().includes(searchQuery);
+  });
+  currentIndex = 0; render();
+}
+
+function render() {
+  if (filteredKeys.length === 0) {
+    document.getElementById('qnum').textContent = 'Nessuna domanda trovata';
+    document.getElementById('question').textContent = '';
+    document.getElementById('options').innerHTML = '';
+    document.getElementById('navCenter').textContent = '0 / 0';
+    return;
+  }
+  const key = filteredKeys[currentIndex];
+  const q = ALL_DATA[key];
+  const ca = q.CA || null;
+
+  document.getElementById('qnum').textContent = `Domanda ${key}`;
+  document.getElementById('question').textContent = q.Q;
+  document.getElementById('noAnswerBadge').style.display = ca ? 'none' : 'inline';
+  document.getElementById('editBtn').style.display = 'inline';
+  document.getElementById('quizResult').style.display = 'none';
+
+  const opts = document.getElementById('options');
+  opts.innerHTML = '';
+  const answered = quizAnswered[key];
+
+  ['A','B','C','D'].forEach(opt => {
+    const btn = document.createElement('button');
+    btn.dataset.opt = opt;
+
+    const label = document.createElement('span');
+    label.className = 'label'; label.textContent = opt;
+
+    const text = document.createElement('span');
+    text.className = 'option-text'; text.textContent = q[opt];
+
+    const check = document.createElement('span');
+    check.className = 'option-check';
+
+    if (mode === 'study') {
+      btn.className = 'option';
+      if (ca === opt) { btn.classList.add('correct'); check.textContent = '✓'; }
+    } else {
+      btn.className = 'option quiz-btn';
+      if (answered) {
+        btn.classList.add('revealed');
+        if (opt === ca) { btn.classList.add('show-correct'); check.textContent = '✓'; }
+        if (opt === answered.selected) {
+          if (answered.selected === ca) { btn.className = 'option quiz-btn revealed selected-correct'; check.textContent = '✓'; }
+          else { btn.className = 'option quiz-btn revealed selected-wrong'; check.textContent = '✗'; }
+        }
+      } else if (ca) {
+        btn.onclick = () => answerQuiz(key, opt);
+      }
+    }
+
+    btn.appendChild(label); btn.appendChild(text); btn.appendChild(check);
+    opts.appendChild(btn);
+  });
+
+  if (mode === 'quiz' && answered) {
+    const res = document.getElementById('quizResult');
+    res.style.display = 'block';
+    if (answered.correct) { res.className = 'quiz-result correct'; res.textContent = '✓ Risposta corretta!'; }
+    else { res.className = 'quiz-result wrong'; res.textContent = `✗ Errata. Risposta corretta: ${ca}`; }
+  }
+
+  document.getElementById('navCenter').textContent = `${currentIndex + 1} / ${filteredKeys.length}`;
+  document.getElementById('prevBtn').disabled = currentIndex === 0;
+  document.getElementById('nextBtn').disabled = currentIndex === filteredKeys.length - 1;
+
+  const pct = (currentIndex + 1) / filteredKeys.length * 100;
+  document.getElementById('progress').style.width = pct.toFixed(1) + '%';
+  updateScore();
+}
+
+function answerQuiz(key, selected) {
+  const ca = ALL_DATA[key].CA;
+  const isCorrect = selected === ca;
+  quizAnswered[key] = { selected, correct: isCorrect };
+  if (isCorrect) scoreCorrect++; else scoreWrong++;
+  render();
+}
+
+function updateScore() {
+  const total = scoreCorrect + scoreWrong;
+  document.getElementById('scoreCorrect').textContent = scoreCorrect;
+  document.getElementById('scoreWrong').textContent = scoreWrong;
+  document.getElementById('scoreAcc').textContent = total > 0 ? `${Math.round(scoreCorrect / total * 100)}%` : '—';
+}
+
+function navigate(dir) {
+  currentIndex = Math.max(0, Math.min(filteredKeys.length - 1, currentIndex + dir));
+  render();
+}
+
+function jumpTo() {
+  const val = document.getElementById('jumpInput').value;
+  const idx = filteredKeys.indexOf(val);
+  if (idx !== -1) { currentIndex = idx; render(); return; }
+  const numIdx = filteredKeys.findIndex(k => parseInt(k) >= parseInt(val));
+  if (numIdx !== -1) { currentIndex = numIdx; render(); }
+}
+
+// Edit modal
+function openEditModal() {
+  editKey = filteredKeys[currentIndex];
+  editSelection = null;
+  const q = ALL_DATA[editKey];
+  document.getElementById('modalQuestion').textContent = q.Q;
+  const optsEl = document.getElementById('modalOpts');
+  optsEl.innerHTML = '';
+  ['A','B','C','D'].forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'modal-opt' + (q.CA === opt ? ' selected' : '');
+    btn.textContent = `${opt}) ${q[opt]}`;
+    btn.onclick = () => {
+      editSelection = opt;
+      document.querySelectorAll('.modal-opt').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      document.getElementById('modalConfirm').disabled = (opt === q.CA);
+    };
+    optsEl.appendChild(btn);
+  });
+  document.getElementById('modalConfirm').disabled = true;
+  document.getElementById('modalOverlay').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('visible');
+  editKey = null; editSelection = null;
+}
+
+function confirmEdit() {
+  if (!editKey || !editSelection) return;
+  ALL_DATA[editKey].CA = editSelection;
+  closeModal();
+  render();
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(ALL_DATA, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'correct_answers.json'; a.click();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (document.getElementById('modalOverlay').classList.contains('visible')) return;
+  if (e.key === 'ArrowLeft') navigate(-1);
+  if (e.key === 'ArrowRight') navigate(1);
+  if (mode === 'quiz') {
+    const k = filteredKeys[currentIndex];
+    if (k && !quizAnswered[k]) {
+      if (e.key === 'a' || e.key === 'A') answerQuiz(k, 'A');
+      if (e.key === 'b' || e.key === 'B') answerQuiz(k, 'B');
+      if (e.key === 'c' || e.key === 'C') answerQuiz(k, 'C');
+      if (e.key === 'd' || e.key === 'D') answerQuiz(k, 'D');
+    }
+  }
+});
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+</script>
+</body>
+</html>
